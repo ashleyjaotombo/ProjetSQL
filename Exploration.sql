@@ -10,7 +10,7 @@ select * from Possede;
 select * from Necessite;
 
 
--- Partie 1 : REQUÊTE DE RESTRICTION ET DE SÉLECTION
+-- Partie 1 : REQUÊTE DE RESTRICTIon ET DE SÉLECTIon
 
 -- Liste les noms des patients qui ont la mutuelle Groupama
 select Nom, Prenom, Mutuelle from Patient where Mutuelle='Groupama';
@@ -44,13 +44,13 @@ select Nom_Amenagement from Amenagement where Nom_Etablissement in ('Clinique du
 
 
 
--- Partie 2 : REQUÊTE DE TRI, D'AGRÉGATION ET DE GROUPEMENT
+-- Partie 2 : REQUÊTE DE TRI, D'AGRÉGATIon ET DE GROUPEMENT
 
 -- Liste les noms des patients des mutuelles qui sont triées dans l'ordre décroissant
 select Nom, Prenom, Mutuelle from Patient order by Mutuelle desc;
 
 -- Détermine le nombre de clients que possède chaque mutuelle triée dans l'ordre croissant
-select COUNT(*) as 'Nombre de Patient par mutuelle', Mutuelle from Patient GROUP BY Mutuelle order by Mutuelle;
+select COUNT(*)  as 'Nombre de Patient par mutuelle', Mutuelle from Patient GROUP BY Mutuelle order by Mutuelle;
 
 -- Détermine le nombre de cas de patients pour chaque objet d'hospitalisation
 select COUNT(Numero_De_Securite_Sociale) as 'Nombre de Cas', Objet_De_L_Hospitalisation from Visite group by Objet_De_L_Hospitalisation;
@@ -64,10 +64,23 @@ select COUNT(ID_Personnel) as 'Effectif du personnel' , Nom_Amenagement, Nom_Eta
 
 -- Identifie les patients traités par le Personnel d'ID 2, et le lieu d'hospitalisation
 select Numero_De_Securite_Sociale, Nom_Etablissement, Nom_Batiment from Necessite 
-	WHERE Numero_De_Securite_Sociale IN (select Numero_De_Securite_Sociale from Traite where ID_Personnel=2);
+	where Numero_De_Securite_Sociale IN (select Numero_De_Securite_Sociale from Traite where ID_Personnel=2);
     
 -- Détermine le nombre de patients qui ne possède pas de mutuelle
 select COUNT(*) from Patient where Mutuelle is NULL;
+
+-- Liste les établissements triés par code postal croissant puis par nom d’établissement
+select Nom_Etablissement, Code_Postal from Etablissement order by Code_Postal asc, Nom_Etablissement asc;
+
+-- Détermine le nombre de tests effectués par établissement
+select ID_Etablissement, COUNT(*) as Nombre_De_Tests from Test
+GROUP BY ID_Etablissement;
+
+-- Détermine le nombre moyen de jours d’hospitalisation par établissement
+select ID_Etablissement, AVG(DATEDIFF(Date_De_Sortie, Date_D_Admission)) as Moyenne_Jours_Hospitalisation from Visite 
+where Date_De_Sortie IS NOT NULL GROUP BY ID_Etablissement;
+
+
 
 
 
@@ -85,4 +98,49 @@ select Pe.Nom, Pe.Prenom, A.Nom_Amenagement, A.Nom_Etablissement from Personnel 
 select Pa.Nom, Pa.Prenom, T.Nom_Du_Test, T.Resultat, E.Nom_Etablissement from Patient Pa 
 	join Test T using (Numero_De_Securite_Sociale) 
     join Etablissement E using (ID_Etablissement) where (E.Nom_Etablissement='Hôpital Saint-Louis');
+    
+-- Liste les patients hospitalisés dans un établissement situé à Paris et leurs lieux d'hospitalisation
+select Pa.Nom, Pa.Prenom, Vi.Numero_De_Chambre, E.Nom_Etablissement  
+from Patient Pa  
+join Visite Vi using (Numero_De_Securite_Sociale)  
+join Etablissement E using (ID_Etablissement)  
+where E.Code_Postal = 75000;
+-- Liste les patients ayant visité plusieurs établissements
+
+select Pa.Nom as Nom_Patient, Pa.Prenom as Prenom_Patient, COUNT(DISTINCT V.ID_Etablissement) as Nombre_Etablissements
+from Patient Pa
+join Visite V on Pa.Numero_De_Securite_Sociale = V.Numero_De_Securite_Sociale
+GROUP BY Pa.Numero_De_Securite_Sociale
+HAVING COUNT(DISTINCT V.ID_Etablissement) > 1;
+
+
+-- Liste les patients ayant passé un test COVID-19 et l'établissement où ils l'ont fait
+select Pa.Nom, Pa.Prenom, T.Nom_Du_Test, T.Resultat, E.Nom_Etablissement  
+from Patient Pa  
+join Test T using (Numero_De_Securite_Sociale)  
+join Etablissement E using (ID_Etablissement)  
+where T.Nom_Du_Test = 'Test COVID-19';
+
+-- Liste les patients ayant été hospitalisés pour un malaise et les établissements correspondants
+select Pa.Nom, Pa.Prenom, E.Nom_Etablissement, Vi.Numero_De_Chambre from Patient Pa  
+join Visite Vi using (Numero_De_Securite_Sociale)  
+join Etablissement E using (ID_Etablissement)  
+where Vi.Objet_De_L_Hospitalisation = 'Malaise';
+
+--  Liste les patients qui sont toujours hospitalisés
+select Pa.Nom as Nom_Patient, Pa.Prenom as Prenom_Patient, V.Date_D_Admission, E.Nom_Etablissement
+from Patient Pa
+join Visite V on Pa.Numero_De_Securite_Sociale = V.Numero_De_Securite_Sociale
+join Etablissement E on V.ID_Etablissement = E.ID_Etablissement
+where V.Date_De_Sortie IS NULL;
+
+-- Liste les patients hospitalisés le 01/03/2024
+select Pa.Nom as Nom_Patient, Pa.Prenom as Prenom_Patient, V.Date_D_Admission, E.Nom_Etablissement
+from Patient Pa join Visite V on Pa.Numero_De_Securite_Sociale = V.Numero_De_Securite_Sociale
+join Etablissement E on V.ID_Etablissement = E.ID_Etablissement
+where V.Date_D_Admission = '2024-03-01';
+
+
+
+
 
